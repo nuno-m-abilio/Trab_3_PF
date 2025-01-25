@@ -10,8 +10,8 @@ import sgleam/check
 // necessária. Por fim, para a operação de conversão da String para uma lista de símbolos, vou
 // criar uma estrutura enumerada para indicar o qual foi o último tipo de dado lido.
 
-/// Estrutura enumerada que representa os operadores válidos da expressão
-pub type Operador {
+/// Estrutura enumerada que representa os operadores válidos da expressão posfixa
+pub type OperadorPosFix {
   // Representa o operação de adição +
   Add
   // Representa o operador de subtração -
@@ -22,35 +22,52 @@ pub type Operador {
   Div
 }
 
-pub type Parentesis {
+pub type Parenteses {
   // Representa o parenteses à esquerda/Left (
   LPa
   // Representa o parenteses à direita/Right
   RPa
 }
 
-/// Estrutura que representa um símbolo em uma expressaõ, que pode ser tanto operador quanto operando
-pub type Symbol {
+/// Estrutura enumerada que representa os operadores válidos da expressão infixa
+pub type OperadorInfFix {
+  //
+  Operador(OperadorInfFix)
+  //
+  Parenteses(Parenteses)
+}
+
+/// Estrutura que representa um símbolo em uma expressão com notação posfixa, que pode ser tanto operador quanto operando
+pub type SymbolPosfix {
   // Representa um Operador
-  Operador(Operador)
+  Operador(OperadorPosFix)
+  // Representa um Operando
+  Operando(Int)
+}
+
+/// Estrutura que representa um símbolo em uma expressão com notação infixa, que pode ser tanto operador quanto operando ou parênteses
+pub type SymbolInfix {
+  // Representa um Operador
+  Operador(OperadorInfFix)
   // Representa um Operando
   Operando(Int)
 }
 
 /// Estrutura enumerada que representa o tipo de erro presente na String de entrada
-pub type ErroConvert {
+pub type Erro {
   LetraPresente
   ParentesesErrado
   ExcessoOperador
   ExcessoOperando
+  DivPorZero
 }
 
-/// Estrutura enumerada que representa os erros na 
-pub type ErroAvalia {
-  ErroDivPorZero
-  ErroFaltaOperandos
-  ErroExcessoOperandos
-}
+// /// Estrutura enumerada que representa os erros na 
+// pub type ErroAvalia {
+//   ErroDivPorZero
+//   ErroFaltaOperandos
+//   ErroExcessoOperandos
+// }
 
 /// Estrutura enumerada que representa tipo de símbolo lido anteriormente - Operador ou Operando
 pub type Last {
@@ -61,16 +78,19 @@ pub type Last {
 }
 // // Projeto de funções principais e auxiliares para resolução do problema:
 
-// /// A partir de uma expressão númerica em notação posfixa, ou seja onde os operadores aparecem
-// /// depois dos operandos, e retorna o valor calculado dessa expressão
-// pub fn avalia_posfix(expression: List(Symbol)) -> Result(Int, ErroAvalia) {
-//   let acc: List(Int) = []
-//   case expression {
-//     [f, ..r] case f {
-//       Operador(num) -> 
-//     }
-//   }
-// }
+/// A partir de uma expressão númerica em notação posfixa, ou seja onde os operadores aparecem
+/// depois dos operandos, retorna o valor calculado dessa expressão
+pub fn avalia_posfix(expression: List(Symbol)) -> Result(Int, ErroAvalia) {
+  todo
+}
+
+/// Isso aqui eu não preciso de recursão dentro
+pub fn processa_posfix(pilha: List(Int), SymbolPosfix) -> Result(List(Int), Erro) {
+  case SymbolPosfix {
+    Operando(num) -> [num, ..pilha]
+    Operador(Op) -> todo
+  }
+}
 
 // pub fn avalia_posfix.examples() {
 //   check.eq(avalia_posfix([Operando(5), Operando(6), Operador(Mul), Operando(3), Operador(Add)]), Ok(33))
