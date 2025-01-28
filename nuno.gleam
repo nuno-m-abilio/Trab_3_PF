@@ -79,27 +79,26 @@ pub type Last {
   Num
 }
 
-// // Projeto de funções principais e auxiliares para resolução do problema:
+// Projeto de funções principais e auxiliares para resolução do problema:
 
-/// A partir de uma expressão númerica em notação posfixa, ou seja onde os operadores aparecem
-/// depois dos operandos, retorna o valor calculado dessa expressão
+/// A partir de uma expressão númerica em notação posfixa expressions, ou seja onde os operadores
+/// aparecem depois dos operandos, retorna o valor calculado dessa expressão ou o primeiro erro
+/// encontrado.
 pub fn avalia_posfix(expressions: List(SymbolPosFix)) -> Result(Int, Erro) {
   let pilha_final =
-    list.fold_until(expressions, [], fn(acc, i) {
+    list.fold_until(expressions, Ok([]), fn(acc, i) {
+      // Nota-se que isso é uma recursão em cauda e em ambos continue e stop retorna-se apenas isso
       let p = processa_posfix(acc, i)
       case p {
-        Ok(pilha) -> list.Continue(p)
-        Error(_) -> list.Stop(acc)
+        Ok(_) -> list.Continue(p)
+        Error(_) -> list.Stop(p)
       }
     })
-  case pilha_final {
-    Error(x) -> Error(x)
-    Ok(pilha) ->
-      case pilha {
-        [] -> Error(FaltaOperando)
-        [a] -> Ok(a)
-        _ -> Error(ExcessoOperando)
-      }
+  use pilha <- result.try(pilha_final)
+  case pilha {
+    [] -> Error(FaltaOperando)
+    [a] -> Ok(a)
+    _ -> Error(ExcessoOperando)
   }
 }
 
@@ -118,7 +117,7 @@ pub fn avalia_posfix_examples() {
     avalia_posfix([
       OperandoSP(5),
       OperandoSP(0),
-      OperadorSP(Mul),
+      OperadorSP(Div),
       OperandoSP(3),
       OperadorSP(Add),
     ]),
@@ -141,11 +140,31 @@ pub fn avalia_posfix_examples() {
   )
 }
 
+// Versão com a pilha não sendo result
 /// Isso aqui eu não preciso de recursão dentro
+// pub fn processa_posfix(
+//   pilha: List(Int),
+//   simbolo: SymbolPosFix,
+// ) -> Result(List(Int), Erro) {
+//   case simbolo {
+//     OperandoSP(num) -> Ok([num, ..pilha])
+//     OperadorSP(op) ->
+//       case pilha {
+//         [b, _, ..] if op == Div && b == 0 -> Error(DivPorZero)
+//         [b, a, ..resto] -> Ok([opera(a, b, op), ..resto])
+//         _ -> Error(FaltaOperando)
+//       }
+//   }
+// }
+
+/// Aplica o efeito de um símbolo de uma expressão em notação posfixa sobre uma pilha pilha_result.
+/// Essa pilha inicia-se como um result que pode incluir erros, pois na função avalia_posfix usa-se
+/// um fold com essa função. Nesse sentido, o valor do acumulador deve ser igual o da saída.
 pub fn processa_posfix(
-  pilha: List(Int),
+  pilha_result: Result(List(Int), Erro),
   simbolo: SymbolPosFix,
 ) -> Result(List(Int), Erro) {
+  use pilha <- result.try(pilha_result)
   case simbolo {
     OperandoSP(num) -> Ok([num, ..pilha])
     OperadorSP(op) ->
@@ -158,12 +177,13 @@ pub fn processa_posfix(
 }
 
 pub fn processa_posfix_examples() {
-  check.eq(processa_posfix([5, 6], OperadorSP(Mul)), Ok([30]))
-  check.eq(processa_posfix([30], OperandoSP(5)), Ok([5, 30]))
-  check.eq(processa_posfix([30], OperadorSP(Add)), Error(FaltaOperando))
-  check.eq(processa_posfix([0, 6], OperadorSP(Div)), Error(DivPorZero))
+  check.eq(processa_posfix(Ok([5, 6]), OperadorSP(Mul)), Ok([30]))
+  check.eq(processa_posfix(Ok([30]), OperandoSP(5)), Ok([5, 30]))
+  check.eq(processa_posfix(Ok([30]), OperadorSP(Add)), Error(FaltaOperando))
+  check.eq(processa_posfix(Ok([0, 6]), OperadorSP(Div)), Error(DivPorZero))
 }
 
+/// Realiza uma operação entre dois inteiros "a" e "b" com o operador op  
 pub fn opera(a: Int, b: Int, op: OperadorPosFix) -> Int {
   case op {
     Add -> a + b
