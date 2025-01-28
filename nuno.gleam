@@ -1,4 +1,5 @@
 import gleam/list
+import gleam/result
 import gleam/string
 import sgleam/check
 
@@ -32,25 +33,25 @@ pub type Parenteses {
 /// Estrutura enumerada que representa os operadores válidos da expressão infixa
 pub type OperadorInfFix {
   //
-  Operador(OperadorInfFix)
+  Operador(OperadorPosFix)
   //
   Parenteses(Parenteses)
 }
 
 /// Estrutura que representa um símbolo em uma expressão com notação posfixa, que pode ser tanto operador quanto operando
-pub type SymbolPosfix {
+pub type SymbolPosFix {
   // Representa um Operador
-  Operador(OperadorPosFix)
+  OperadorSP(OperadorPosFix)
   // Representa um Operando
-  Operando(Int)
+  OperandoSP(Int)
 }
 
 /// Estrutura que representa um símbolo em uma expressão com notação infixa, que pode ser tanto operador quanto operando ou parênteses
-pub type SymbolInfix {
+pub type SymbolInFix {
   // Representa um Operador
-  Operador(OperadorInfFix)
+  OperadorSI(OperadorInfFix)
   // Representa um Operando
-  Operando(Int)
+  OperandoSI(Int)
 }
 
 /// Estrutura enumerada que representa o tipo de erro presente na String de entrada
@@ -59,6 +60,7 @@ pub type Erro {
   ParentesesErrado
   ExcessoOperador
   ExcessoOperando
+  FaltaOperando
   DivPorZero
 }
 
@@ -76,22 +78,100 @@ pub type Last {
   // Representa que o último dado lido compõe um Número
   Num
 }
+
 // // Projeto de funções principais e auxiliares para resolução do problema:
 
 /// A partir de uma expressão númerica em notação posfixa, ou seja onde os operadores aparecem
 /// depois dos operandos, retorna o valor calculado dessa expressão
-pub fn avalia_posfix(expression: List(Symbol)) -> Result(Int, ErroAvalia) {
-  todo
-}
-
-/// Isso aqui eu não preciso de recursão dentro
-pub fn processa_posfix(pilha: List(Int), SymbolPosfix) -> Result(List(Int), Erro) {
-  case SymbolPosfix {
-    Operando(num) -> [num, ..pilha]
-    Operador(Op) -> todo
+pub fn avalia_posfix(expressions: List(SymbolPosFix)) -> Result(Int, Erro) {
+  let pilha_final =
+    list.fold_until(expressions, [], fn(acc, i) {
+      let p = processa_posfix(acc, i)
+      case p {
+        Ok(pilha) -> list.Continue(p)
+        Error(_) -> list.Stop(acc)
+      }
+    })
+  case pilha_final {
+    Error(x) -> Error(x)
+    Ok(pilha) ->
+      case pilha {
+        [] -> Error(FaltaOperando)
+        [a] -> Ok(a)
+        _ -> Error(ExcessoOperando)
+      }
   }
 }
 
+pub fn avalia_posfix_examples() {
+  check.eq(
+    avalia_posfix([
+      OperandoSP(5),
+      OperandoSP(6),
+      OperadorSP(Mul),
+      OperandoSP(3),
+      OperadorSP(Add),
+    ]),
+    Ok(33),
+  )
+  check.eq(
+    avalia_posfix([
+      OperandoSP(5),
+      OperandoSP(0),
+      OperadorSP(Mul),
+      OperandoSP(3),
+      OperadorSP(Add),
+    ]),
+    Error(DivPorZero),
+  )
+  check.eq(
+    avalia_posfix([OperandoSP(5), OperandoSP(6), OperadorSP(Mul), OperandoSP(3)]),
+    Error(ExcessoOperando),
+  )
+  check.eq(
+    avalia_posfix([
+      OperandoSP(5),
+      OperandoSP(6),
+      OperadorSP(Mul),
+      OperandoSP(3),
+      OperadorSP(Add),
+      OperadorSP(Add),
+    ]),
+    Error(FaltaOperando),
+  )
+}
+
+/// Isso aqui eu não preciso de recursão dentro
+pub fn processa_posfix(
+  pilha: List(Int),
+  simbolo: SymbolPosFix,
+) -> Result(List(Int), Erro) {
+  case simbolo {
+    OperandoSP(num) -> Ok([num, ..pilha])
+    OperadorSP(op) ->
+      case pilha {
+        [b, _, ..] if op == Div && b == 0 -> Error(DivPorZero)
+        [b, a, ..resto] -> Ok([opera(a, b, op), ..resto])
+        _ -> Error(FaltaOperando)
+      }
+  }
+}
+
+pub fn processa_posfix_examples() {
+  check.eq(processa_posfix([5, 6], OperadorSP(Mul)), Ok([30]))
+  check.eq(processa_posfix([30], OperandoSP(5)), Ok([5, 30]))
+  check.eq(processa_posfix([30], OperadorSP(Add)), Error(FaltaOperando))
+  check.eq(processa_posfix([0, 6], OperadorSP(Div)), Error(DivPorZero))
+}
+
+pub fn opera(a: Int, b: Int, op: OperadorPosFix) -> Int {
+  case op {
+    Add -> a + b
+    Sub -> a - b
+    Mul -> a * b
+    Div -> a / b
+  }
+}
 // pub fn avalia_posfix.examples() {
 //   check.eq(avalia_posfix([Operando(5), Operando(6), Operador(Mul), Operando(3), Operador(Add)]), Ok(33))
 //   check.eq(avalia_posfix([Operando(9), Operando(4), Operador(Div), Operando(2), Operador(Sub)]), Ok(0))
