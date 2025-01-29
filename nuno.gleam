@@ -1,3 +1,4 @@
+import gleam/io
 import gleam/list
 import gleam/result
 import gleam/string
@@ -204,49 +205,199 @@ pub fn opera(a: Int, b: Int, op: OperadorPosFix) -> Int {
 }
 
 /// Faz a tradução de um aexpressão numérica em notação infixa expression em notação posfixa.
-pub fn infix_to_posfix(expression: List(SymbolInFix)) -> List(SymbolPosFix) {
-  todo
+pub fn infix_to_posfix(
+  expression: List(SymbolInFix),
+) -> Result(List(SymbolPosFix), Erro) {
+  // Faz todo o passo 1 indicado pelo algoritmo da especificação do trabalho
+  let acc_um: #(List(OperadorInFix), List(SymbolPosFix)) = #([], [])
+  use passo_um <- result.try(
+    list.fold_until(expression, Ok(acc_um), fn(acc, i) {
+      case processa_infix(acc, i) {
+        Error(e) -> list.Stop(Error(e))
+        Ok(tp) -> list.Continue(Ok(tp))
+      }
+    }),
+  )
+  // Faz o passo 2 de retirar os operadores que ficaram na pilha e colocar na saída
+  use passo_um_pilha <- result.try(
+    result.all(list.map(passo_um.0, opif_to_sipf)),
+  )
+  let passo_dois =
+    list.fold(passo_um_pilha, passo_um.1, fn(acc, i) { [i, ..acc] })
+
+  // Inverte a lista de saída final para ela ficar na configuração certa de ser processada
+  passo_dois
+  |> list.fold([], fn(acc, i) { [i, ..acc] })
+  |> Ok()
+}
+
+pub fn infix_to_posfix_examples() {
+  check.eq(
+    infix_to_posfix([
+      OperandoSI(2),
+      OperadorSI(Operador(Add)),
+      OperandoSI(3),
+      OperadorSI(Operador(Mul)),
+      OperandoSI(4),
+    ]),
+    Ok([
+      OperandoSP(2),
+      OperandoSP(3),
+      OperandoSP(4),
+      OperadorSP(Mul),
+      OperadorSP(Add),
+    ]),
+  )
+  check.eq(
+    infix_to_posfix([
+      OperadorSI(Parenteses(LPa)),
+      OperandoSI(7),
+      OperadorSI(Operador(Mul)),
+      OperadorSI(Parenteses(LPa)),
+      OperandoSI(8),
+      OperadorSI(Operador(Sub)),
+      OperandoSI(2),
+      OperadorSI(Parenteses(RPa)),
+      OperadorSI(Operador(Div)),
+      OperandoSI(5),
+      OperadorSI(Parenteses(RPa)),
+    ]),
+    Ok([
+      OperandoSP(7),
+      OperandoSP(8),
+      OperandoSP(2),
+      OperadorSP(Sub),
+      OperadorSP(Mul),
+      OperandoSP(5),
+      OperadorSP(Div),
+    ]),
+  )
+  check.eq(
+    infix_to_posfix([
+      OperadorSI(Parenteses(LPa)),
+      OperadorSI(Parenteses(LPa)),
+      OperadorSI(Parenteses(RPa)),
+      OperadorSI(Parenteses(RPa)),
+    ]),
+    Ok([]),
+  )
+  check.eq(
+    infix_to_posfix([
+      OperadorSI(Parenteses(LPa)),
+      OperadorSI(Parenteses(LPa)),
+      OperandoSI(5),
+      OperadorSI(Operador(Add)),
+      OperandoSI(2),
+      OperadorSI(Parenteses(RPa)),
+      OperadorSI(Operador(Mul)),
+      OperadorSI(Parenteses(LPa)),
+      OperandoSI(8),
+      OperadorSI(Operador(Sub)),
+      OperadorSI(Parenteses(LPa)),
+      OperandoSI(3),
+      OperadorSI(Operador(Add)),
+      OperandoSI(1),
+      OperadorSI(Parenteses(RPa)),
+      OperadorSI(Operador(Div)),
+      OperandoSI(2),
+      OperadorSI(Parenteses(RPa)),
+      OperadorSI(Parenteses(RPa)),
+      OperadorSI(Operador(Add)),
+      OperandoSI(4),
+      OperadorSI(Parenteses(RPa)),
+      OperadorSI(Operador(Mul)),
+      OperandoSI(3),
+      OperadorSI(Operador(Sub)),
+      OperandoSI(6),
+      OperadorSI(Operador(Div)),
+      OperadorSI(Parenteses(LPa)),
+      OperandoSI(2),
+      OperadorSI(Operador(Add)),
+      OperandoSI(1),
+      OperadorSI(Parenteses(RPa)),
+    ]),
+    Ok([
+      OperandoSP(5),
+      OperandoSP(2),
+      OperadorSP(Add),
+      OperandoSP(8),
+      OperandoSP(3),
+      OperandoSP(1),
+      OperadorSP(Add),
+      OperandoSP(2),
+      OperadorSP(Div),
+      OperadorSP(Sub),
+      OperadorSP(Mul),
+      OperandoSP(4),
+      OperadorSP(Add),
+      OperandoSP(3),
+      OperadorSP(Mul),
+      OperandoSP(6),
+      OperandoSP(2),
+      OperandoSP(1),
+      OperadorSP(Add),
+      OperadorSP(Div),
+      OperadorSP(Sub),
+    ]),
+  )
+}
+
+// Tenta traduzir um operador infixo para um 
+pub fn opif_to_sipf(op: OperadorInFix) -> Result(SymbolPosFix, Erro) {
+  case op {
+    Operador(o) -> Ok(OperadorSP(o))
+    Parenteses(p) -> Error(ParentesesErrado)
+  }
 }
 
 /// A SAIDA SAI DESSA FUNÇÂO INVERTIDA CASO NÂO HAJA ERROS, É NECESSÁRIO INVERTÊ-LA NO FINAL
 pub fn processa_infix(
-  pilha_saida: #(List(OperadorInFix), List(SymbolPosFix)),
+  pilhaesaida: Result(#(List(OperadorInFix), List(SymbolPosFix)), Erro),
   simbolo: SymbolInFix,
 ) -> Result(#(List(OperadorInFix), List(SymbolPosFix)), Erro) {
-  let pilha = pilha_saida.0
-  let saida = pilha_saida.1
+  case pilhaesaida {
+    Error(e) -> Error(e)
+    Ok(#(pilha, saida)) ->
+      case simbolo {
+        // Operando: adiciona à saída mantendo a pilha
+        OperandoSI(numero) -> {
+          Ok(#(pilha, [OperandoSP(numero), ..saida]))
+        }
 
-  case simbolo {
-    // Operando: adiciona à saída mantendo a pilha
-    OperandoSI(numero) -> {
-      Ok(#(pilha, [OperandoSP(numero), ..saida]))
-    }
+        // Operador: processa considerando a pilha atual
+        OperadorSI(Operador(op)) -> {
+          // Se a pilha estiver vazia, apenas empilha o operador
+          case pilha {
+            [] -> Ok(#([Operador(op)], saida))
+            _ -> {
+              // Caso contrário, processa a pilha
+              use quase <- result.try(
+                list.fold_until(pilha, Ok(#(pilha, saida)), fn(acc, i) {
+                  processa_op_pilha(acc, i, op)
+                }),
+              )
+              let #(ajuste, igual) = quase
+              Ok(#([Operador(op), ..ajuste], igual))
+            }
+          }
+        }
 
-    // Operador: processa considerando a pilha atual
-    OperadorSI(Operador(op)) -> {
-      // Se a pilha estiver vazia, apenas empilha o operador
-      case pilha {
-        [] -> Ok(#([Operador(op)], saida))
-        _ -> {
-          // Caso contrário, processa a pilha
-          list.fold_until(pilha, Ok(#(pilha, saida)), fn(acc, i) {
-            processa_op_pilha(acc, i, op)
-          })
+        // Parêntese esquerdo: sempre empilha
+        OperadorSI(Parenteses(LPa)) -> {
+          Ok(#([Parenteses(LPa), ..pilha], saida))
+        }
+
+        // Parêntese direito: desempilha até encontrar o correspondente
+        OperadorSI(Parenteses(RPa)) -> {
+          case pilha {
+            [] -> Error(ParentesesErrado)
+            _ ->
+              list.fold_until(pilha, Ok(#(pilha, saida)), fn(acc, i) {
+                processa_rpa(acc, i)
+              })
+          }
         }
       }
-    }
-
-    // Parêntese esquerdo: sempre empilha
-    OperadorSI(Parenteses(LPa)) -> {
-      Ok(#([Parenteses(LPa), ..pilha], saida))
-    }
-
-    // Parêntese direito: desempilha até encontrar o correspondente
-    OperadorSI(Parenteses(RPa)) -> {
-      list.fold_until(pilha, Ok(#(pilha, saida)), fn(acc, i) {
-        processa_rpa(acc, i)
-      })
-    }
   }
 }
 
@@ -255,23 +406,23 @@ pub fn processa_infix_examples() {
   // Entrada: 2 + 3 * 4
   // Saída esperada: 2 3 4 * +
   check.eq(
-    processa_infix(#([], []), OperandoSI(2)),
+    processa_infix(Ok(#([], [])), OperandoSI(2)),
     Ok(#([], [OperandoSP(2)])),
     // Operando vai direto para saída
   )
   check.eq(
-    processa_infix(#([], [OperandoSP(2)]), OperadorSI(Operador(Add))),
+    processa_infix(Ok(#([], [OperandoSP(2)])), OperadorSI(Operador(Add))),
     Ok(#([Operador(Add)], [OperandoSP(2)])),
     // Pilha vazia, operador vai para pilha
   )
   check.eq(
-    processa_infix(#([Operador(Add)], [OperandoSP(2)]), OperandoSI(3)),
+    processa_infix(Ok(#([Operador(Add)], [OperandoSP(2)])), OperandoSI(3)),
     Ok(#([Operador(Add)], [OperandoSP(3), OperandoSP(2)])),
     // Operando vai direto para saída
   )
   check.eq(
     processa_infix(
-      #([Operador(Add)], [OperandoSP(3), OperandoSP(2)]),
+      Ok(#([Operador(Add)], [OperandoSP(3), OperandoSP(2)])),
       OperadorSI(Operador(Mul)),
     ),
     Ok(#([Operador(Mul), Operador(Add)], [OperandoSP(3), OperandoSP(2)])),
@@ -279,7 +430,7 @@ pub fn processa_infix_examples() {
   )
   check.eq(
     processa_infix(
-      #([Operador(Mul), Operador(Add)], [OperandoSP(3), OperandoSP(2)]),
+      Ok(#([Operador(Mul), Operador(Add)], [OperandoSP(3), OperandoSP(2)])),
       OperandoSI(4),
     ),
     Ok(
@@ -295,18 +446,18 @@ pub fn processa_infix_examples() {
   // Entrada: (2 + 3) * 4
   // Saída esperada: 2 3 + 4 *
   check.eq(
-    processa_infix(#([], []), OperadorSI(Parenteses(LPa))),
+    processa_infix(Ok(#([], [])), OperadorSI(Parenteses(LPa))),
     Ok(#([Parenteses(LPa)], [])),
     // Abre parênteses vai para pilha
   )
   check.eq(
-    processa_infix(#([Parenteses(LPa)], []), OperandoSI(2)),
+    processa_infix(Ok(#([Parenteses(LPa)], [])), OperandoSI(2)),
     Ok(#([Parenteses(LPa)], [OperandoSP(2)])),
     // Operando vai direto para saída
   )
   check.eq(
     processa_infix(
-      #([Parenteses(LPa)], [OperandoSP(2)]),
+      Ok(#([Parenteses(LPa)], [OperandoSP(2)])),
       OperadorSI(Operador(Add)),
     ),
     Ok(#([Operador(Add), Parenteses(LPa)], [OperandoSP(2)])),
@@ -314,7 +465,7 @@ pub fn processa_infix_examples() {
   )
   check.eq(
     processa_infix(
-      #([Operador(Add), Parenteses(LPa)], [OperandoSP(2)]),
+      Ok(#([Operador(Add), Parenteses(LPa)], [OperandoSP(2)])),
       OperandoSI(3),
     ),
     Ok(#([Operador(Add), Parenteses(LPa)], [OperandoSP(3), OperandoSP(2)])),
@@ -322,7 +473,7 @@ pub fn processa_infix_examples() {
   )
   check.eq(
     processa_infix(
-      #([Operador(Add), Parenteses(LPa)], [OperandoSP(3), OperandoSP(2)]),
+      Ok(#([Operador(Add), Parenteses(LPa)], [OperandoSP(3), OperandoSP(2)])),
       OperadorSI(Parenteses(RPa)),
     ),
     Ok(#([], [OperadorSP(Add), OperandoSP(3), OperandoSP(2)])),
@@ -330,26 +481,30 @@ pub fn processa_infix_examples() {
   )
   check.eq(
     processa_infix(
-      #([], [OperandoSP(2), OperandoSP(3), OperadorSP(Add)]),
+      Ok(#([], [OperadorSP(Add), OperandoSP(3), OperandoSP(2)])),
       OperadorSI(Operador(Mul)),
     ),
-    Ok(#([Operador(Mul)], [OperandoSP(2), OperandoSP(3), OperadorSP(Add)])),
+    Ok(#([Operador(Mul)], [OperadorSP(Add), OperandoSP(3), OperandoSP(2)])),
     // Mul vai para pilha
   )
   check.eq(
     processa_infix(
-      #([Operador(Mul)], [OperandoSP(2), OperandoSP(3), OperadorSP(Add)]),
+      Ok(#([Operador(Mul)], [OperadorSP(Add), OperandoSP(3), OperandoSP(2)])),
       OperandoSI(4),
     ),
     Ok(
       #([Operador(Mul)], [
         OperandoSP(4),
-        OperandoSP(2),
-        OperandoSP(3),
         OperadorSP(Add),
+        OperandoSP(3),
+        OperandoSP(2),
       ]),
     ),
     // Operando vai direto para saída
+  )
+  check.eq(
+    processa_infix(Ok(#([], [])), OperadorSI(Parenteses(RPa))),
+    Error(ParentesesErrado),
   )
 }
 
@@ -364,19 +519,19 @@ pub fn processa_op_pilha(
     Error(e) -> list.Stop(Error(e))
     Ok(#(pilha_atual, saida_atual)) -> {
       case pilha_atual {
-        [] -> list.Stop(Ok(#([Operador(op)], saida_atual)))
+        [] -> list.Stop(Ok(#([], saida_atual)))
         [Operador(op_topo), ..resto] -> {
+          // Aqui é a parte importante, onde a gente empilha os operadores de maior precedência. Aí
+          // só lá pra da função que vamos finalmente colocar o op no lugar certo
           case tem_precedencia(op_topo, op) {
             True -> {
               let nova_saida = [OperadorSP(op_topo), ..saida_atual]
               list.Continue(Ok(#(resto, nova_saida)))
             }
-            False ->
-              list.Stop(Ok(#([Operador(op), ..pilha_atual], saida_atual)))
+            False -> list.Stop(Ok(#(pilha_atual, saida_atual)))
           }
         }
-        [Parenteses(LPa), ..] ->
-          list.Stop(Ok(#([Operador(op), ..pilha_atual], saida_atual)))
+        [Parenteses(LPa), ..] -> list.Stop(Ok(#(pilha_atual, saida_atual)))
         _ -> list.Stop(Error(ParentesesErrado))
       }
     }
