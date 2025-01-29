@@ -208,207 +208,6 @@ pub fn infix_to_posfix(expression: List(SymbolInFix)) -> List(SymbolPosFix) {
   todo
 }
 
-// // Insere um Símbolo em notação infixa no na tupla acumuladora da pilha e saída da tradção de infixa para posfixa
-// pub fn processa_infix(
-//   pilha_saida: #(List(OperadorInFix), List(SymbolPosFix)),
-//   simbolo: SymbolInFix,
-// ) -> Result(#(List(OperadorInFix), List(SymbolPosFix)), Erro) {
-//   let pilha = pilha_saida.0
-//   let saida = pilha_saida.1
-//   case simbolo {
-//     OperandoSI(num) -> Ok(#(pilha, [OperandoSP(num)]))
-//     OperadorSI(Operador(op)) ->
-//       list.fold_until(pilha, Ok(#(pilha, saida)), fn(s, p) {
-//         case s {
-//           Error(a) -> Error(a)
-//           #(manipula, _) ->
-//             case p {
-//               [] -> list.Stop(s)
-//               [x, ..r] if x == Operador(opx) ->
-//                 case tem_precedencia(opx, op) {
-//                   True ->
-//                     list.Continue(
-//                       Ok(#(desempilhada_infix(tupla.0), [OperadorSP(opx), ..r])),
-//                     )
-//                   False -> list.Stop(OK(#([Operador(op), ..manipula])))
-//                 }
-//               [x, ..r] if x == Parenteses(LPa) -> list.Stop(s)
-//               [x, ..r] if x == Parenteses(RPa) ->
-//                 list.Stop(Error(ParentesesErrado))
-//             }
-//         }
-//       })
-//     OperadorSI(Parenteses(LPa)) -> Ok(#([Parenteses(LPa), ..pilha], saida))
-//     OperadorSI(Parenteses(RPa)) ->
-//       list.fold_until(pilha, Ok(#(pilha, saida)), fn(s, p) {
-//         case s {
-//           Error(a) -> Error(a)
-//           #(manipula, _) ->
-//             case p {
-//               [] -> list.Stop(Error(ParentesesErrado))
-//               [x, ..r] if x == Operador(opx) ->
-//                 list.Continue(
-//                   Ok(#(desempilhada_infix(tupla.0), [OperadorSP(opx), ..r])),
-//                 )
-//               [x, ..r] if x == Parenteses(LPa) ->
-//                 list.Stop(Ok(#(desempilhada_infix(tupla.0), r)))
-//               [x, ..r] if x == Parenteses(RPa) ->
-//                 list.Stop(Error(ParentesesErrado))
-//             }
-//         }
-//       })
-//   }
-// }
-
-// pub fn processa_infix(
-//   pilha_saida: #(List(OperadorInFix), List(SymbolPosFix)),
-//   simbolo: SymbolInFix,
-// ) -> Result(#(List(OperadorInFix), List(SymbolPosFix)), Erro) {
-//   let pilha = pilha_saida.0
-//   let saida = pilha_saida.1
-
-//   case simbolo {
-//     // 1. Correção: Operando deve ser anexado à saída existente
-//     OperandoSI(num) -> Ok(#(pilha, list.append(saida, [OperandoSP(num)])))
-
-//     // 2. Correção: Processamento de operadores
-//     OperadorSI(Operador(op)) ->
-//       list.fold_until(pilha, Ok(#(pilha, saida)), fn(acc, _) {
-//         case acc {
-//           Error(e) -> list.Stop(Error(e))
-//           Ok(#(manipula, saida_atual)) ->
-//             case manipula {
-//               // Pilha vazia: apenas empilha o operador
-//               [] -> list.Stop(Ok(#([Operador(op)], saida_atual)))
-
-//               // Encontrou um operador no topo
-//               [Operador(op_topo), ..resto] ->
-//                 case tem_precedencia(op_topo, op) {
-//                   True -> {
-//                     // 3. Correção: Desempilha e adiciona à saída
-//                     let nova_saida =
-//                       list.append(saida_atual, [OperadorSP(op_topo)])
-//                     list.Continue(Ok(#(resto, nova_saida)))
-//                   }
-//                   False ->
-//                     list.Stop(Ok(#([Operador(op), ..manipula], saida_atual)))
-//                 }
-
-//               // Encontrou parêntese esquerdo
-//               [Parenteses(LPa), ..resto] ->
-//                 list.Stop(Ok(#([Operador(op), ..manipula], saida_atual)))
-
-//               // 4. Correção: Caso inesperado de parêntese direito
-//               [Parenteses(RPa), ..resto] -> list.Stop(Error(ParentesesErrado))
-//             }
-//         }
-//       })
-
-//     // 5. Correção: Parêntese esquerdo é simplesmente empilhado
-//     OperadorSI(Parenteses(LPa)) -> Ok(#([Parenteses(LPa), ..pilha], saida))
-
-//     // 6. Correção: Processamento de parêntese direito
-//     OperadorSI(Parenteses(RPa)) ->
-//       list.fold_until(pilha, Ok(#(pilha, saida)), fn(acc, _) {
-//         case acc {
-//           Error(e) -> list.Stop(Error(e))
-//           Ok(#(manipula, saida_atual)) ->
-//             case manipula {
-//               [] -> list.Stop(Error(ParentesesErrado))
-
-//               // Encontrou um operador
-//               [Operador(op), ..resto] -> {
-//                 let nova_saida = list.append(saida_atual, [OperadorSP(op)])
-//                 list.Continue(Ok(#(resto, nova_saida)))
-//               }
-
-//               // Encontrou parêntese esquerdo correspondente
-//               [Parenteses(LPa), ..resto] -> list.Stop(Ok(#(resto, saida_atual)))
-
-//               // Encontrou outro parêntese direito (erro)
-//               [Parenteses(RPa), ..resto] -> list.Stop(Error(ParentesesErrado))
-//             }
-//         }
-//       })
-//   }
-// }
-
-// pub fn processa_infix(
-//   pilha_saida: #(List(OperadorInFix), List(SymbolPosFix)),
-//   simbolo: SymbolInFix,
-// ) -> Result(#(List(OperadorInFix), List(SymbolPosFix)), Erro) {
-//   let pilha = pilha_saida.0
-//   let saida = pilha_saida.1
-
-//   case simbolo {
-//     // 1. Operando: anexa à saída e mantém a pilha como está
-//     OperandoSI(num) -> Ok(#(pilha, list.append(saida, [OperandoSP(num)])))
-
-//     // 2. Operador: processa considerando precedência
-//     OperadorSI(Operador(op)) -> {
-//       case pilha {
-//         // Se a pilha estiver vazia, simplesmente empilha o operador
-//         [] -> Ok(#([Operador(op)], saida))
-
-//         // Se houver elementos na pilha, processa de acordo com a precedência
-//         _ ->
-//           list.fold_until(pilha, Ok(#(pilha, saida)), fn(acc, _) {
-//             case acc {
-//               Error(e) -> list.Stop(Error(e))
-//               Ok(#(manipula, saida_atual)) ->
-//                 case manipula {
-//                   [] -> list.Stop(Ok(#([Operador(op)], saida_atual)))
-
-//                   [Operador(op_topo), ..resto] ->
-//                     case tem_precedencia(op_topo, op) {
-//                       True -> {
-//                         let nova_saida =
-//                           list.append(saida_atual, [OperadorSP(op_topo)])
-//                         list.Continue(Ok(#(resto, nova_saida)))
-//                       }
-//                       False ->
-//                         list.Stop(
-//                           Ok(#([Operador(op), ..manipula], saida_atual)),
-//                         )
-//                     }
-
-//                   [Parenteses(LPa), ..resto] ->
-//                     list.Stop(Ok(#([Operador(op), ..manipula], saida_atual)))
-
-//                   [Parenteses(RPa), ..resto] ->
-//                     list.Stop(Error(ParentesesErrado))
-//                 }
-//             }
-//           })
-//       }
-//     }
-
-//     // 3. Parêntese esquerdo: empilha diretamente
-//     OperadorSI(Parenteses(LPa)) -> Ok(#([Parenteses(LPa), ..pilha], saida))
-
-//     // 4. Parêntese direito: desempilha até encontrar o parêntese esquerdo correspondente
-//     OperadorSI(Parenteses(RPa)) ->
-//       list.fold_until(pilha, Ok(#(pilha, saida)), fn(acc, _) {
-//         case acc {
-//           Error(e) -> list.Stop(Error(e))
-//           Ok(#(manipula, saida_atual)) ->
-//             case manipula {
-//               [] -> list.Stop(Error(ParentesesErrado))
-
-//               [Operador(op), ..resto] -> {
-//                 let nova_saida = list.append(saida_atual, [OperadorSP(op)])
-//                 list.Continue(Ok(#(resto, nova_saida)))
-//               }
-
-//               [Parenteses(LPa), ..resto] -> list.Stop(Ok(#(resto, saida_atual)))
-
-//               [Parenteses(RPa), ..resto] -> list.Stop(Error(ParentesesErrado))
-//             }
-//         }
-//       })
-//   }
-// }
-
 /// A SAIDA SAI DESSA FUNÇÂO INVERTIDA CASO NÂO HAJA ERROS, É NECESSÁRIO INVERTÊ-LA NO FINAL
 pub fn processa_infix(
   pilha_saida: #(List(OperadorInFix), List(SymbolPosFix)),
@@ -430,30 +229,8 @@ pub fn processa_infix(
         [] -> Ok(#([Operador(op)], saida))
         _ -> {
           // Caso contrário, processa a pilha
-          list.fold_until(pilha, Ok(#(pilha, saida)), fn(acc, _) {
-            case acc {
-              Error(e) -> list.Stop(Error(e))
-              Ok(#(pilha_atual, saida_atual)) -> {
-                case pilha_atual {
-                  [] -> list.Stop(Ok(#([Operador(op)], saida_atual)))
-                  [Operador(op_topo), ..resto] -> {
-                    case tem_precedencia(op_topo, op) {
-                      True -> {
-                        let nova_saida = [OperadorSP(op_topo), ..saida_atual]
-                        list.Continue(Ok(#(resto, nova_saida)))
-                      }
-                      False ->
-                        list.Stop(
-                          Ok(#([Operador(op), ..pilha_atual], saida_atual)),
-                        )
-                    }
-                  }
-                  [Parenteses(LPa), ..] ->
-                    list.Stop(Ok(#([Operador(op), ..pilha_atual], saida_atual)))
-                  _ -> list.Stop(Error(ParentesesErrado))
-                }
-              }
-            }
+          list.fold_until(pilha, Ok(#(pilha, saida)), fn(acc, i) {
+            processa_op_pilha(acc, i, op)
           })
         }
       }
@@ -466,21 +243,8 @@ pub fn processa_infix(
 
     // Parêntese direito: desempilha até encontrar o correspondente
     OperadorSI(Parenteses(RPa)) -> {
-      list.fold_until(pilha, Ok(#(pilha, saida)), fn(acc, _) {
-        case acc {
-          Error(e) -> list.Stop(Error(e))
-          Ok(#(pilha_atual, saida_atual)) -> {
-            case pilha_atual {
-              [] -> list.Stop(Error(ParentesesErrado))
-              [Operador(op), ..resto] -> {
-                let nova_saida = [OperadorSP(op), ..saida_atual]
-                list.Continue(Ok(#(resto, nova_saida)))
-              }
-              [Parenteses(LPa), ..resto] -> list.Stop(Ok(#(resto, saida_atual)))
-              [Parenteses(RPa), ..] -> list.Stop(Error(ParentesesErrado))
-            }
-          }
-        }
+      list.fold_until(pilha, Ok(#(pilha, saida)), fn(acc, i) {
+        processa_rpa(acc, i)
       })
     }
   }
@@ -590,17 +354,55 @@ pub fn processa_infix_examples() {
 }
 
 pub fn processa_op_pilha(
-  acc: #(List(OperadorInFix), List(SymbolPosFix)),
-  i: List(OperadorInFix),
-) -> Result(#(List(OperadorInFix), List(SymbolPosFix)), Erro) {
-  todo
+  acc: Result(#(List(OperadorInFix), List(SymbolPosFix)), Erro),
+  i: OperadorInFix,
+  op: OperadorPosFix,
+) -> list.ContinueOrStop(
+  Result(#(List(OperadorInFix), List(SymbolPosFix)), Erro),
+) {
+  case acc {
+    Error(e) -> list.Stop(Error(e))
+    Ok(#(pilha_atual, saida_atual)) -> {
+      case pilha_atual {
+        [] -> list.Stop(Ok(#([Operador(op)], saida_atual)))
+        [Operador(op_topo), ..resto] -> {
+          case tem_precedencia(op_topo, op) {
+            True -> {
+              let nova_saida = [OperadorSP(op_topo), ..saida_atual]
+              list.Continue(Ok(#(resto, nova_saida)))
+            }
+            False ->
+              list.Stop(Ok(#([Operador(op), ..pilha_atual], saida_atual)))
+          }
+        }
+        [Parenteses(LPa), ..] ->
+          list.Stop(Ok(#([Operador(op), ..pilha_atual], saida_atual)))
+        _ -> list.Stop(Error(ParentesesErrado))
+      }
+    }
+  }
 }
 
 pub fn processa_rpa(
-  acc: #(List(OperadorInFix), List(SymbolPosFix)),
-  i: List(OperadorInFix),
-) -> Result(#(List(OperadorInFix), List(SymbolPosFix)), Erro) {
-  todo
+  acc: Result(#(List(OperadorInFix), List(SymbolPosFix)), Erro),
+  i: OperadorInFix,
+) -> list.ContinueOrStop(
+  Result(#(List(OperadorInFix), List(SymbolPosFix)), Erro),
+) {
+  case acc {
+    Error(e) -> list.Stop(Error(e))
+    Ok(#(pilha_atual, saida_atual)) -> {
+      case pilha_atual {
+        [] -> list.Stop(Error(ParentesesErrado))
+        [Operador(op), ..resto] -> {
+          let nova_saida = [OperadorSP(op), ..saida_atual]
+          list.Continue(Ok(#(resto, nova_saida)))
+        }
+        [Parenteses(LPa), ..resto] -> list.Stop(Ok(#(resto, saida_atual)))
+        [Parenteses(RPa), ..] -> list.Stop(Error(ParentesesErrado))
+      }
+    }
+  }
 }
 
 /// Descarta um elemento da pilha caso ele exista
