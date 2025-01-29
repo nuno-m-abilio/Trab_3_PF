@@ -115,6 +115,16 @@ pub fn avalia_posfix_examples() {
   )
   check.eq(
     avalia_posfix([
+      OperandoSP(2),
+      OperandoSP(3),
+      OperandoSP(4),
+      OperadorSP(Mul),
+      OperadorSP(Add),
+    ]),
+    Ok(14),
+  )
+  check.eq(
+    avalia_posfix([
       OperandoSP(5),
       OperandoSP(0),
       OperadorSP(Div),
@@ -399,6 +409,7 @@ pub fn infix_to_posfix(expression: List(SymbolInFix)) -> List(SymbolPosFix) {
 //   }
 // }
 
+/// A SAIDA SAI DESSA FUNÇÂO INVERTIDA CASO NÂO HAJA ERROS, É NECESSÁRIO INVERTÊ-LA NO FINAL
 pub fn processa_infix(
   pilha_saida: #(List(OperadorInFix), List(SymbolPosFix)),
   simbolo: SymbolInFix,
@@ -409,7 +420,7 @@ pub fn processa_infix(
   case simbolo {
     // Operando: adiciona à saída mantendo a pilha
     OperandoSI(numero) -> {
-      Ok(#(pilha, list.append(saida, [OperandoSP(numero)])))
+      Ok(#(pilha, [OperandoSP(numero), ..saida]))
     }
 
     // Operador: processa considerando a pilha atual
@@ -428,8 +439,7 @@ pub fn processa_infix(
                   [Operador(op_topo), ..resto] -> {
                     case tem_precedencia(op_topo, op) {
                       True -> {
-                        let nova_saida =
-                          list.append(saida_atual, [OperadorSP(op_topo)])
+                        let nova_saida = [OperadorSP(op_topo), ..saida_atual]
                         list.Continue(Ok(#(resto, nova_saida)))
                       }
                       False ->
@@ -463,7 +473,7 @@ pub fn processa_infix(
             case pilha_atual {
               [] -> list.Stop(Error(ParentesesErrado))
               [Operador(op), ..resto] -> {
-                let nova_saida = list.append(saida_atual, [OperadorSP(op)])
+                let nova_saida = [OperadorSP(op), ..saida_atual]
                 list.Continue(Ok(#(resto, nova_saida)))
               }
               [Parenteses(LPa), ..resto] -> list.Stop(Ok(#(resto, saida_atual)))
@@ -477,24 +487,7 @@ pub fn processa_infix(
 }
 
 pub fn processa_infix_examples() {
-  // Caso 1: Expressão simples com adição
-  // Entrada: 2 + 3
-  check.eq(
-    processa_infix(#([], []), OperandoSI(2)),
-    Ok(#([], [OperandoSP(2)])),
-    // Operando vai direto para saída
-  )
-  check.eq(
-    processa_infix(#([], [OperandoSP(2)]), OperadorSI(Operador(Add))),
-    Ok(#([Operador(Add)], [OperandoSP(2)])),
-    // Pilha vazia, operador vai para pilha
-  )
-  check.eq(
-    processa_infix(#([Operador(Add)], [OperandoSP(2)]), OperandoSI(3)),
-    Ok(#([Operador(Add)], [OperandoSP(2), OperandoSP(3)])),
-    // Operando vai direto para saída
-  )
-  // Caso 2: Expressão com multiplicação e adição
+  // Caso 1: Expressão com multiplicação e adição
   // Entrada: 2 + 3 * 4
   // Saída esperada: 2 3 4 * +
   check.eq(
@@ -509,32 +502,31 @@ pub fn processa_infix_examples() {
   )
   check.eq(
     processa_infix(#([Operador(Add)], [OperandoSP(2)]), OperandoSI(3)),
-    Ok(#([Operador(Add)], [OperandoSP(2), OperandoSP(3)])),
+    Ok(#([Operador(Add)], [OperandoSP(3), OperandoSP(2)])),
     // Operando vai direto para saída
   )
   check.eq(
     processa_infix(
-      #([Operador(Add)], [OperandoSP(2), OperandoSP(3)]),
+      #([Operador(Add)], [OperandoSP(3), OperandoSP(2)]),
       OperadorSI(Operador(Mul)),
     ),
-    Ok(#([Operador(Mul), Operador(Add)], [OperandoSP(2), OperandoSP(3)])),
+    Ok(#([Operador(Mul), Operador(Add)], [OperandoSP(3), OperandoSP(2)])),
     // Mul tem maior precedência que Add, vai para pilha
   )
   check.eq(
     processa_infix(
-      #([Operador(Mul), Operador(Add)], [OperandoSP(2), OperandoSP(3)]),
+      #([Operador(Mul), Operador(Add)], [OperandoSP(3), OperandoSP(2)]),
       OperandoSI(4),
     ),
     Ok(
       #([Operador(Mul), Operador(Add)], [
-        OperandoSP(2),
-        OperandoSP(3),
         OperandoSP(4),
+        OperandoSP(3),
+        OperandoSP(2),
       ]),
     ),
     // Operando vai direto para saída
   )
-
   // Caso 3: Expressão com parênteses
   // Entrada: (2 + 3) * 4
   // Saída esperada: 2 3 + 4 *
@@ -561,15 +553,15 @@ pub fn processa_infix_examples() {
       #([Operador(Add), Parenteses(LPa)], [OperandoSP(2)]),
       OperandoSI(3),
     ),
-    Ok(#([Operador(Add), Parenteses(LPa)], [OperandoSP(2), OperandoSP(3)])),
+    Ok(#([Operador(Add), Parenteses(LPa)], [OperandoSP(3), OperandoSP(2)])),
     // Operando vai direto para saída
   )
   check.eq(
     processa_infix(
-      #([Operador(Add), Parenteses(LPa)], [OperandoSP(2), OperandoSP(3)]),
+      #([Operador(Add), Parenteses(LPa)], [OperandoSP(3), OperandoSP(2)]),
       OperadorSI(Parenteses(RPa)),
     ),
-    Ok(#([], [OperandoSP(2), OperandoSP(3), OperadorSP(Add)])),
+    Ok(#([], [OperadorSP(Add), OperandoSP(3), OperandoSP(2)])),
     // Fecha parênteses: desempilha até achar LPa
   )
   check.eq(
@@ -587,17 +579,29 @@ pub fn processa_infix_examples() {
     ),
     Ok(
       #([Operador(Mul)], [
+        OperandoSP(4),
         OperandoSP(2),
         OperandoSP(3),
         OperadorSP(Add),
-        OperandoSP(4),
       ]),
     ),
     // Operando vai direto para saída
   )
 }
 
-// pub fn processa_rpa(acc: #(List(OperadorInFix), List(SymbolPosFix)), i: List(OperadorInFix)) -> Result(#(List(OperadorInFix), List(SymbolPosFix)), Erro)
+pub fn processa_op_pilha(
+  acc: #(List(OperadorInFix), List(SymbolPosFix)),
+  i: List(OperadorInFix),
+) -> Result(#(List(OperadorInFix), List(SymbolPosFix)), Erro) {
+  todo
+}
+
+pub fn processa_rpa(
+  acc: #(List(OperadorInFix), List(SymbolPosFix)),
+  i: List(OperadorInFix),
+) -> Result(#(List(OperadorInFix), List(SymbolPosFix)), Erro) {
+  todo
+}
 
 /// Descarta um elemento da pilha caso ele exista
 pub fn desempilhada_infix(pilha: List(OperadorInFix)) -> List(OperadorInFix) {
@@ -607,6 +611,8 @@ pub fn desempilhada_infix(pilha: List(OperadorInFix)) -> List(OperadorInFix) {
   }
 }
 
+/// Verifica se um operador tem maior ou igual precedência que outro. Mul e Div têm maior
+/// precedência que Add e Sub. Operadores de mesma classe têm a mesma precedência
 pub fn tem_precedencia(oppilha: OperadorPosFix, op: OperadorPosFix) -> Bool {
   case oppilha == Mul || oppilha == Div {
     True -> True
