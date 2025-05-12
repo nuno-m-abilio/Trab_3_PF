@@ -4,6 +4,13 @@ import gleam/result
 import gleam/string
 import sgleam/check
 
+// ///////////////////////////////////// TEM UM ERRO NA HORA DE UNIR OS CARACTERES DE NÚMEROS DA ENTRADA QUE NÃO DEU TEMPO DE ARRUMAR
+// //////////////////////////////////// EM ESPECIAL, TÔ MAIS SEGURO EM RELAÇÃO AS FUNÇÕES INFIX/POSFIX E OPSFIX/VALOR
+// /////////////////////////////////// PARA PODER ENTREGAR ALGO, TIVE AJUDA DE IA NAS FUNÇÕES AUXILIARES DE TRATAR A ENTRADA, 
+// //////////////////////////////////ENTÃO QUALUQER COISA NÃO AVALIA, MAS SÓ PARA ENTREGAR ALGO FHUNCIONAL
+
+// /////////////////////////////////// TIPOS DE DADOS DE INFIX/POSFIX E OPSFIX/VALOR 
+
 //   Projeto dos tipos de dados: Para solucionar o problema, é conveniente criar tipos de dados que
 // adequem-se aos requisitos que são apresentados. Inicialmente vou criar uma estutura de dados para
 // representar os operadores válidos da expressão. Além disso, vou criar um tipo enumerado com 2
@@ -73,7 +80,7 @@ pub type Last {
   Num
 }
 
-// Projeto de funções principais e auxiliares para resolução do problema:
+// /////////////////////////////////////////////////////// FUNÇÃO DE AVALIAR O VALOR
 
 /// A partir de uma expressão númerica em notação posfixa expression, ou seja onde os operadores
 /// aparecem depois dos operandos, retorna o valor calculado dessa expressão ou o primeiro erro
@@ -179,6 +186,8 @@ pub fn opera(a: Int, b: Int, op: OperadorPosFix) -> Int {
     Div -> a / b
   }
 }
+
+// /////////////////////////////////////////////////////// FUNÇÃO DE TRADUZIR DE INFIXO PARA POSFIXO
 
 /// Faz a tradução de um aexpressão numérica em notação infixa expression em notação posfixa.
 pub fn infix_to_posfix(
@@ -322,11 +331,12 @@ pub fn infix_to_posfix_examples() {
 pub fn opif_to_sipf(op: OperadorInFix) -> Result(SymbolPosFix, Erro) {
   case op {
     Operador(o) -> Ok(OperadorSP(o))
-    Parenteses(p) -> Error(ParentesesErrado)
+    Parenteses(_) -> Error(ParentesesErrado)
   }
 }
 
-/// A SAIDA SAI DESSA FUNÇÂO INVERTIDA CASO NÂO HAJA ERROS, É NECESSÁRIO INVERTÊ-LA NO FINAL
+/// Faz o algoritmo especificado no trabalho para um simbolo infixo simbolo, colocando-o na tupla
+/// pilhaesaida ou retornando um erro
 pub fn processa_infix(
   pilhaesaida: Result(#(List(OperadorInFix), List(SymbolPosFix)), Erro),
   simbolo: SymbolInFix,
@@ -484,9 +494,11 @@ pub fn processa_infix_examples() {
   )
 }
 
+/// Função auxiliar que vai cuidar do que acontece com os operadores Add Sub Mul E Div em específico
 pub fn processa_op_pilha(
   acc: Result(#(List(OperadorInFix), List(SymbolPosFix)), Erro),
-  i: OperadorInFix,
+  // sABE-SE O OPERADOR, MAS PRECISO DISSO PRO FOLD
+  _i: OperadorInFix,
   op: OperadorPosFix,
 ) -> list.ContinueOrStop(
   Result(#(List(OperadorInFix), List(SymbolPosFix)), Erro),
@@ -514,9 +526,12 @@ pub fn processa_op_pilha(
   }
 }
 
+/// Função auxiliar que cuida da parte dos parênteses à direita, que tem que ir tirando até
+/// encontrar um parênteses da esquerda. Caso isso não ocorra, sai um erro
 pub fn processa_rpa(
   acc: Result(#(List(OperadorInFix), List(SymbolPosFix)), Erro),
-  i: OperadorInFix,
+  // sABE-SE O OPERADOR, MAS PRECISO DISSO PRO FOLD
+  _i: OperadorInFix,
 ) -> list.ContinueOrStop(
   Result(#(List(OperadorInFix), List(SymbolPosFix)), Erro),
 ) {
@@ -546,43 +561,9 @@ pub fn tem_precedencia(oppilha: OperadorPosFix, op: OperadorPosFix) -> Bool {
   }
 }
 
-// /// Caso a string represente uma operação válida, ou seja, sem letras, com parênteses corretos e
-// /// operadores e operantos em quantidade e posições válidas, converte-a para uma lista de símbolos
-// /// em notação infixa. Caso contrário, retorna o primeiro erro encontrado na expressão.
-// pub fn tratar_entrada(entrada: String) -> Result(SymbolInFix, Erro) {
-//   let lst_entrada = string.split(entrada, "")
-//   let lst_char = list.map(lst_entrada, char_entrada)
-//   // O acumulador é a pilha dos parêntesis e a outra é a saída
-//   let retira_erros: ProcessaEntrada =
-//     list.fold_until(
-//       lst_char,
-//       Acumuladores([], [], True, True, True),
-//       fn(acc, i) {
-//         case i {
-//           Espaco -> list.Continue(acc)
-//           Invalido ->
-//             list.Stop(Acumuladores(
-//               acc.pilha_par,
-//               acc.saida,
-//               False,
-//               acc.par_certo,
-//               acc.sinais_certo,
-//             ))
-//           Numero(num) ->
-//             list.Continue(Acumuladores(
-//               acc.pilha_par,
-//               [Numero(num), ..acc.saida],
-//               acc.tudo_valido,
-//               acc.par_certo,
-//               acc.sinais_certo,
-//             ))
-//           Sinal(Parenteses(par)) -> todo
-//           Sinal(Operador(op)) -> todo
-//         }
-//       },
-//     )
-// }
+// /////////////////////////////////////////////////////// FUNÇÃO DE TRADUZIR A ENTRADA PARA INFIXO, TRATANDO OS MILHÕES DE ERROS SOCORRO
 
+// /////////////////////////////////////////////////////// AQUI TIPOS PARA ESSA PARTE EM ESPECIFICO
 pub type CharEntrada {
   Numero(String)
   Sinal(OperadorInFix)
@@ -598,6 +579,103 @@ pub type ProcessaEntrada {
     par_certo: Bool,
     sinais_certo: Bool,
   )
+}
+
+// /////////////////////////////////////////////////////// AQUI TIPOS PARA ESSA PARTE EM ESPECIFICO
+
+/// Caso a string represente uma operação válida, converte-a para uma lista de símbolos em notação infixa
+pub fn tratar_entrada(entrada: String) -> Result(List(SymbolInFix), Erro) {
+  let lst_entrada = string.split(entrada, "")
+  let lst_char = list.map(lst_entrada, char_entrada)
+
+  // Processa cada caractere mantendo estado dos parênteses e validações
+  let processo =
+    list.fold_until(
+      lst_char,
+      Acumuladores([], [], True, True, True),
+      fn(acc, i) {
+        case i {
+          Espaco -> list.Continue(acc)
+          Invalido ->
+            list.Stop(Acumuladores(
+              acc.pilha_par,
+              acc.saida,
+              False,
+              acc.par_certo,
+              acc.sinais_certo,
+            ))
+          Numero(num) ->
+            list.Continue(Acumuladores(
+              acc.pilha_par,
+              [Numero(num), ..acc.saida],
+              acc.tudo_valido,
+              acc.par_certo,
+              acc.sinais_certo,
+            ))
+          Sinal(sinal) -> {
+            let novo_acc = processa_sinal(acc, sinal)
+            list.Continue(novo_acc)
+          }
+        }
+      },
+    )
+
+  // Verifica erros e converte números adjacentes em um único valor
+  case processo {
+    Acumuladores(_, _, False, _, _) -> Error(CaractereInvalido)
+    Acumuladores(_, _, _, False, _) -> Error(ParentesesErrado)
+    Acumuladores(_, _, _, _, False) -> Error(ExcessoOperador)
+    Acumuladores([], saida, True, True, True) -> {
+      // Converte a lista de CharEntrada para SymbolInFix combinando dígitos adjacentes
+      combina_numeros(saida, [], 0, False)
+    }
+    _ -> Error(ParentesesErrado)
+  }
+}
+
+pub fn tratar_entrada_examples() {
+  // Esse aqui é um exemplo básico para testar
+  check.eq(
+    tratar_entrada("2+3*4"),
+    Ok([
+      OperandoSI(2),
+      OperadorSI(Operador(Add)),
+      OperandoSI(3),
+      OperadorSI(Operador(Mul)),
+      OperandoSI(4),
+    ]),
+  )
+  // Esse aqui dá para testar exemplos corretos
+  check.eq(
+    tratar_entrada("(2+3)*4"),
+    Ok([
+      OperadorSI(Parenteses(LPa)),
+      OperandoSI(2),
+      OperadorSI(Operador(Add)),
+      OperandoSI(3),
+      OperadorSI(Parenteses(RPa)),
+      OperadorSI(Operador(Mul)),
+      OperandoSI(4),
+    ]),
+  )
+
+  // Esse aqui já vai testar se os caracteres de números tão se juntando
+  check.eq(
+    tratar_entrada("123+456"),
+    Ok([OperandoSI(123), OperadorSI(Operador(Add)), OperandoSI(456)]),
+  )
+
+  // Erro de dois operadores lado a lado que não combinam
+  check.eq(tratar_entrada("2++3"), Error(ExcessoOperador))
+
+  // Erro de parenteses da esquerda em excesso
+  check.eq(tratar_entrada("(2+3"), Error(ParentesesErrado))
+
+  // Erro de parenteses da direita em excesso
+  check.eq(tratar_entrada("2+3)"), Error(ParentesesErrado))
+
+  // Erro de caracteres inválidos
+  check.eq(tratar_entrada("a+b"), Error(CaractereInvalido))
 }
 
 pub fn char_entrada(char: String) -> CharEntrada {
@@ -703,124 +781,29 @@ pub fn processa_sinal(
   }
 }
 
-/// Caso a string represente uma operação válida, converte-a para uma lista de símbolos em notação infixa
-pub fn tratar_entrada(entrada: String) -> Result(List(SymbolInFix), Erro) {
-  let lst_entrada = string.split(entrada, "")
-  let lst_char = list.map(lst_entrada, char_entrada)
-
-  // Processa cada caractere mantendo estado dos parênteses e validações
-  let processo =
-    list.fold_until(
-      lst_char,
-      Acumuladores([], [], True, True, True),
-      fn(acc, i) {
-        case i {
-          Espaco -> list.Continue(acc)
-          Invalido ->
-            list.Stop(Acumuladores(
-              acc.pilha_par,
-              acc.saida,
-              False,
-              acc.par_certo,
-              acc.sinais_certo,
-            ))
-          Numero(num) ->
-            list.Continue(Acumuladores(
-              acc.pilha_par,
-              [Numero(num), ..acc.saida],
-              acc.tudo_valido,
-              acc.par_certo,
-              acc.sinais_certo,
-            ))
-          Sinal(sinal) -> {
-            let novo_acc = processa_sinal(acc, sinal)
-            list.Continue(novo_acc)
-          }
-        }
-      },
-    )
-
-  // Verifica erros e converte números adjacentes em um único valor
-  case processo {
-    Acumuladores(pilha, _, False, _, _) -> Error(CaractereInvalido)
-    Acumuladores(pilha, _, _, False, _) -> Error(ParentesesErrado)
-    Acumuladores(pilha, _, _, _, False) -> Error(ExcessoOperador)
-    Acumuladores([], saida, True, True, True) -> {
-      // Converte a lista de CharEntrada para SymbolInFix combinando dígitos adjacentes
-      combina_numeros(list.reverse(saida), [], 0, False)
-    }
-    _ -> Error(ParentesesErrado)
-  }
-}
-
-pub fn exemplos_tratar_entrada() {
-  // Esse aqui é um exemplo básico para testar
-  check.eq(
-    tratar_entrada("2+3*4"),
-    Ok([
-      OperandoSI(2),
-      OperadorSI(Operador(Add)),
-      OperandoSI(3),
-      OperadorSI(Operador(Mul)),
-      OperandoSI(4),
-    ]),
-  )
-  // Esse aqui dá para testar exemplos corretos
-  check.eq(
-    tratar_entrada("(2+3)*4"),
-    Ok([
-      OperadorSI(Parenteses(LPa)),
-      OperandoSI(2),
-      OperadorSI(Operador(Add)),
-      OperandoSI(3),
-      OperadorSI(Parenteses(RPa)),
-      OperadorSI(Operador(Mul)),
-      OperandoSI(4),
-    ]),
-  )
-
-  // Esse aqui já vai testar se os caracteres de números tão se juntando
-  check.eq(
-    tratar_entrada("123+456"),
-    Ok([OperandoSI(123), OperadorSI(Operador(Add)), OperandoSI(456)]),
-  )
-
-  // Erro de dois operadores lado a lado que não combinam
-  check.eq(tratar_entrada("2++3"), Error(ExcessoOperador))
-
-  // Erro de parenteses da esquerda em excesso
-  check.eq(tratar_entrada("(2+3"), Error(ParentesesErrado))
-
-  // Erro de parenteses da direita em excesso
-  check.eq(tratar_entrada("2+3)"), Error(ParentesesErrado))
-
-  // Erro de caracteres inválidos
-  check.eq(tratar_entrada("a+b"), Error(CaractereInvalido))
-}
-
-/// Combina dígitos adjacentes em um único número e converte para SymbolInFix
+/// Combina dígitos que estão lado a lado em um único número e converte para o tipo adequadoSymbolInFix
 pub fn combina_numeros(
   entrada: List(CharEntrada),
   saida: List(SymbolInFix),
-  numero_atual: Int,
-  processando_numero: Bool,
+  num_atual: Int,
+  processando_num: Bool,
 ) -> Result(List(SymbolInFix), Erro) {
   case entrada {
     [] ->
-      case processando_numero {
-        True -> Ok([OperandoSI(numero_atual), ..saida])
+      case processando_num {
+        True -> Ok([OperandoSI(num_atual), ..saida])
         False -> Ok(saida)
       }
     [Numero(digito), ..resto] -> {
       let valor = int.parse(digito) |> result.unwrap(0)
-      combina_numeros(resto, saida, numero_atual * 10 + valor, True)
+      combina_numeros(resto, saida, num_atual * 10 + valor, True)
     }
     [Sinal(op), ..resto] ->
-      case processando_numero {
+      case processando_num {
         True ->
           combina_numeros(
             resto,
-            [OperadorSI(op), OperandoSI(numero_atual), ..saida],
+            [OperadorSI(op), OperandoSI(num_atual), ..saida],
             0,
             False,
           )
@@ -842,7 +825,7 @@ pub fn avalia_expressao(expressao: String) -> Result(Int, Erro) {
   avalia_posfix(posfixa)
 }
 
-pub fn exemplos_avalia_expressao() {
+pub fn avalia_expressao_examples() {
   check.eq(avalia_expressao("2+3*4"), Ok(14))
   check.eq(avalia_expressao("(2+3)*4"), Ok(20))
   check.eq(avalia_expressao("123+456"), Ok(579))
